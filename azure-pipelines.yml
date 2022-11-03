@@ -7,20 +7,17 @@
 trigger:
 - main
 
-pool:
-  vmImage: ubuntu-latest
-
 steps:
 - task: AzureResourceManagerTemplateDeployment@3
   inputs:
     deploymentScope: 'Resource Group'
-    azureResourceManagerConnection: 'EnablingTech'
+    azureResourceManagerConnection: 'Sentinel ARM Deploy'
     subscriptionId: 'c5ae1a85-c72f-4c38-bb05-b37ffc6246c7'
     action: 'Create Or Update Resource Group'
     resourceGroupName: 'rgSentinel'
     location: 'Central US'
     templateLocation: 'URL of the file'
-    csmFileLink: 'https://raw.githubusercontent.com/sstrauserThreatHunter/SentinelRepo/main/azuredeploy.json'
-    overrideParameters: '-projectName [EnterAProjectName]'
+    csmFileLink: 'https://raw.githubusercontent.com/sstrauserThreatHunter/SentinelRepo/main/azuredeploy.json?token=GHSAT0AAAAAAB2WZXG3EO3NXO2TVAB7ES22Y3DC4WQ'
+    overrideParameters: '-projectName ThreatHunterMSSP'
     deploymentMode: 'Incremental'
-    deploymentName: 'DeployPipelineTemplate'
+    deploymentName: 'DeployPipelineTemplate.'
