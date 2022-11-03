@@ -1,0 +1,21 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main
+
+steps:
+- task: AzureResourceManagerTemplateDeployment@3
+  inputs:
+    deploymentScope: 'Resource Group'
+    azureResourceManagerConnection: 'Sentinel ARM Deploy'
+    subscriptionId: 'c5ae1a85-c72f-4c38-bb05-b37ffc6246c7'
+    action: 'Create Or Update Resource Group'
+    resourceGroupName: 'rgSentinel'
+    location: 'Central US'
+    templateLocation: 'URL of the file'
+    csmFileLink: 'https://raw.githubusercontent.com/sstrauserThreatHunter/SentinelRepo/main/Azure_Sentinel_analytics_rules.json?token=GHSAT0AAAAAAB2W2ZOINJQJIHB5L2U4Y6P2Y3DI4UQ'
+    deploymentMode: 'Incremental'
+    deploymentName: 'Sentinel'
