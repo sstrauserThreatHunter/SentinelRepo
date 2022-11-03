@@ -17,6 +17,7 @@ steps:
     resourceGroupName: 'rgSentinel'
     location: 'Central US'
     templateLocation: 'URL of the file'
-    csmParametersFileLink: 'https://github.com/sstrauserThreatHunter/SentinelRepo/blob/b1f4b775ada933aa4a4db863db1e3f181267447d/azuredeploy.json'    
+    csmFileLink: 'https://raw.githubusercontent.com/sstrauserThreatHunter/SentinelRepo/main/Azure_Sentinel_analytics_rules.json?token=GHSAT0AAAAAAB2WZXG3QYFHCIAVRPOVVK6GY3DFEOA'
+    csmParametersFileLink: 'https://raw.githubusercontent.com/sstrauserThreatHunter/SentinelRepo/main/azuredeploy.json?token=GHSAT0AAAAAAB2WZXG36OEAMFZ2UACMRGD6Y3DFFBA'
     deploymentMode: 'Incremental'
     deploymentName: 'DeployPipelineTemplate'
