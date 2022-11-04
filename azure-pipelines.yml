@@ -14,7 +14,7 @@ steps:
     ScriptType: 'InlineScript'
     Inline: |
     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-    Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force
+      Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force
       import-module az.accounts
       install-module Az.SecurityInsights
       import-module az.securityinsights
