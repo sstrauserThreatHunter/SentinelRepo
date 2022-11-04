@@ -45,7 +45,6 @@ steps:
       $AutoRules = Get-AzSentinelAutomationRule -ResourceGroupName "rgSentinel" -WorkspaceName "ThreatHunterMSSP"
       $AnylRules = Get-AzSentinelAlertRule @sArgs
       
-      #Get authentication token to connect to Azure.
       Import-Module MSAL.PS
       $MsalToken = Get-MsalToken -TenantId $TenantID -ClientId $AppId -ClientSecret ($ClientSecret | ConvertTo-SecureString -AsPlainText -Force)
       Connect-Graph -AccessToken $MsalToken.AccessToken
@@ -55,10 +54,8 @@ steps:
           'Authorization' =  'bearer ' + (get-azaccesstoken).token
       }
       
-      #Get all the Alert Rules from Gold Workspace.
       $RuleNames = Get-AzSentinelAlertRule @sArgs
       
-      #Loop through all the Rules and create copies in destination Workspace
       foreach($RuleName in $RuleNames){
       
       $uri = "https://management.azure.com/subscriptions/" + $SourceSub + "/resourceGroups/" + $SourceRG + "/providers/Microsoft.OperationalInsights/workspaces/" + $SourceWS + "/providers/Microsoft.SecurityInsights/alertRules/" + $RuleName.name + "?api-version=2022-07-01-preview"
@@ -97,7 +94,6 @@ steps:
       }
       }                   
       
-      #Loop through all rules in Gold Sentinel, and copy them to the Destination Workspace.
       Set-AzContext -Subscription $DestSub
       
       foreach($AutoRule in $AutoRules){
