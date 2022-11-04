@@ -13,6 +13,9 @@ steps:
     azureSubscription: 'Sentinel ARM Deploy'
     ScriptType: 'InlineScript'
     Inline: |
+      import-module az.accounts
+      import-module az.securityinsights
+      import-module az.resources
       $DestSub = "c5ae1a85-c72f-4c38-bb05-b37ffc6246c7"
       $SourceSub = "70eb6c79-84cb-4adc-ba2c-2eef3fdd7383"
       
