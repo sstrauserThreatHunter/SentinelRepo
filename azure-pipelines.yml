@@ -14,6 +14,7 @@ steps:
     ScriptType: 'InlineScript'
     Inline: |
       import-module az.accounts
+      install-module Az.SecurityInsights
       import-module az.securityinsights
       import-module az.resources
       $DestSub = "c5ae1a85-c72f-4c38-bb05-b37ffc6246c7"
