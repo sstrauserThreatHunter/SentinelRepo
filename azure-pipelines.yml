@@ -8,15 +8,126 @@ trigger:
 - main
 
 steps:
-- task: AzureResourceManagerTemplateDeployment@3
+- task: AzurePowerShell@5
   inputs:
-    deploymentScope: 'Resource Group'
-    azureResourceManagerConnection: 'Sentinel ARM Deploy'
-    subscriptionId: 'c5ae1a85-c72f-4c38-bb05-b37ffc6246c7'
-    action: 'Create Or Update Resource Group'
-    resourceGroupName: 'rgSentinel'
-    location: 'Central US'
-    templateLocation: 'URL of the file'
-    csmFileLink: 'https://raw.githubusercontent.com/sstrauserThreatHunter/SentinelRepo/main/Azure_Sentinel_analytics_rules.json?token=GHSAT0AAAAAAB2W2ZOINJQJIHB5L2U4Y6P2Y3DI4UQ'
-    deploymentMode: 'Incremental'
-    deploymentName: 'DeployPipelineTemplate'
+    azureSubscription: 'Sentinel ARM Deploy'
+    ScriptType: 'InlineScript'
+    Inline: |
+      $DestSub = "c5ae1a85-c72f-4c38-bb05-b37ffc6246c7"
+      $SourceSub = "70eb6c79-84cb-4adc-ba2c-2eef3fdd7383"
+      
+      $SourceWS = "ThreatHunterMSSP"
+      $SourceRG = "rgSentinel"
+      $DestRG = "rgSentinel"
+      $DestWS = "enablingtech"
+      $AppID = "95098dc6-d967-43c6-9ddd-a5b235627053"
+      $TenantID = "b97db93f-ba65-4ed8-8be9-15e047852060"
+      $ClientSecret = 'jk08Q~x9EgBxMXRV.7-oKzf8AwOksbtdNrzf8cg_'
+      
+      $sArgs = @{
+      ResourceGroupName = "rgSentinel"
+      WorkspaceName = "ThreatHunterMSSP"
+      }
+      
+      $dArgs = @{
+          ResourceGroupName = "rgSentinel"
+          WorkspaceName = "enablingtech"
+      }
+      
+      Set-AzContext -Subscription $SourceSub
+      
+      $AutoRules = Get-AzSentinelAutomationRule -ResourceGroupName "rgSentinel" -WorkspaceName "ThreatHunterMSSP"
+      $AnylRules = Get-AzSentinelAlertRule @sArgs
+      
+      #Get authentication token to connect to Azure.
+      Import-Module MSAL.PS
+      $MsalToken = Get-MsalToken -TenantId $TenantID -ClientId $AppId -ClientSecret ($ClientSecret | ConvertTo-SecureString -AsPlainText -Force)
+      Connect-Graph -AccessToken $MsalToken.AccessToken
+      
+      $authHeader = @{
+          'Content-Type'  = 'application/json'
+          'Authorization' =  'bearer ' + (get-azaccesstoken).token
+      }
+      
+      #Get all the Alert Rules from Gold Workspace.
+      $RuleNames = Get-AzSentinelAlertRule @sArgs
+      
+      #Loop through all the Rules and create copies in destination Workspace
+      foreach($RuleName in $RuleNames){
+      
+      $uri = "https://management.azure.com/subscriptions/" + $SourceSub + "/resourceGroups/" + $SourceRG + "/providers/Microsoft.OperationalInsights/workspaces/" + $SourceWS + "/providers/Microsoft.SecurityInsights/alertRules/" + $RuleName.name + "?api-version=2022-07-01-preview"
+      $uri2 = "https://management.azure.com/subscriptions/" + $DestSub + "/resourceGroups/" + $DestRG + "/providers/Microsoft.OperationalInsights/workspaces/" + $DestWS + "/providers/Microsoft.SecurityInsights/alertRules/" + $RuleName.name + "?api-version=2022-07-01-preview"
+      
+      $response = Invoke-RestMethod -Uri $uri -Method Get -Headers $authHeader
+      
+      If($RuleName.Kind -ne "Fusion"){
+      
+      $body = $response | ConvertTo-Json -Depth 32
+      $body2 = $body -Replace $SourceSub,$DestSub
+      $body3 = $body2 -Replace $SourceWS,$DestWS
+      $body4 = $body3 | ConvertFrom-Json
+      $body4.properties = $body4.properties | Select-Object * -ExcludeProperty lastModifiedUtc
+      $body4 = $body4 | Select-Object * -ExcludeProperty etag
+      $body5 = $body4 | ConvertTo-Json -Depth 32
+      
+      Invoke-RestMethod -Uri $uri2 -Method PUT -Body $body5 -Headers $authHeader
+      }
+      ElseIf($RuleName.Kind -eq "Fusion"){
+      
+      $body = $response | ConvertTo-Json -Depth 32
+      $body2 = $body -Replace $SourceSub,$DestSub
+      $body3 = $body2 -Replace $SourceWS,$DestWS
+      $body4 = $body3 | ConvertFrom-Json
+      $body4.properties = $body4.properties | Select-Object * -ExcludeProperty lastModifiedUtc
+      $body4.properties = $body4.properties | Select-Object * -ExcludeProperty displayName
+      $body4.properties = $body4.properties | Select-Object * -ExcludeProperty description
+      $body4.properties = $body4.properties | Select-Object * -ExcludeProperty tactics
+      $body4.properties = $body4.properties | Select-Object * -ExcludeProperty severity
+      $body4 = $body4 | Select-Object * -ExcludeProperty etag
+      $body5 = $body4 | ConvertTo-Json -Depth 32
+      
+      Invoke-RestMethod -Uri $uri2 -Method PUT -Body $body5 -Headers $authHeader
+      
+      }
+      }                   
+      
+      #Loop through all rules in Gold Sentinel, and copy them to the Destination Workspace.
+      Set-AzContext -Subscription $DestSub
+      
+      foreach($AutoRule in $AutoRules){
+              $cons = ($autorule.TriggeringLogicCondition).conditionpropertyvalue
+                 
+              if($null -eq ($autorule.TriggeringLogicCondition).Conditionpropertyname){
+                  $dcons = $con.TriggeringLogicCondition
+              }
+              else {
+              
+              $i = 0
+              $dCons = $autorule.TriggeringLogicCondition
+                             
+              Foreach($con in $cons){
+      
+                      if (($anylrules.id -contains $con) -and ($cons.count -eq 1)){
+                      $srule = ($AnylRules | Where-Object { $_.id -eq $con}).DisplayName
+                      $fCons = (Get-AzSentinelAlertRule @dArgs | Where-Object {$_.displayname -eq $srule}).Id
+                      $dcons | ForEach-Object { $_.ConditionPropertyValue = $fcons }
+                      }
+                      if(($anylrules.id -contains $con) -and ($cons.count -gt 1)){
+                      $srule = ($AnylRules | Where-Object { $_.id -eq $con}).DisplayName
+                      $fCons = (Get-AzSentinelAlertRule @dArgs | Where-Object {$_.displayname -eq $srule}).Id
+                      $dcons | ForEach-Object { $_.ConditionPropertyValue[$i] = $fcons }
+                      }
+      
+                  $i = $i + 1
+                  }
+              }
+      
+      If((Get-AzSentinelAutomationRule @dArgs).DisplayName -notcontains $AutoRule.DisplayName){
+      New-AzSentinelAutomationRule @dArgs -Id ((New-Guid).Guid) -Action $AutoRule.Action -DisplayName $AutoRule.DisplayName -Order ((Get-AzSentinelAutomationRule @dArgs).Action.count + 1) -TriggeringLogicIsEnabled -TriggeringLogicCondition $dcons
+      }
+      Else{
+      Write-Host $AutoRule.DisplayName "Exists Already"
+      }
+      }
+    FailOnStandardError: true
+    azurePowerShellVersion: 'LatestVersion'
